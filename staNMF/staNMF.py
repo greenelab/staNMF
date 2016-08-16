@@ -1,17 +1,24 @@
+
+
 ###########################
 # Required Pacakges
 ##########################
-import argparse
-from timeit import default_timer as timer
 import math
-import spams
-import csv
-import numpy as np
 import random
 import os
 import sys
 import warnings
+import argparse
+import collections
+import csv
+
+import numpy as np
+import pandas as pd
+from timeit import default_timer as timer
+from scipy.stats import pearsonr
+import scipy.stats as stats
 import matplotlib.pyplot as plt
+import spams
 
 
 class staNMF:
@@ -21,7 +28,7 @@ class staNMF:
     Python 2.7 implementation of Siqi Wu's 03/2016 Stability NMF (staNMF)
 
     Solves non-negative matrix factorization over a range of principal patterns
-    with randomly sampled initial NMF "guesses" for an n x m matrix using
+    (PPs) with randomly sampled initial NMF "guesses" for an n x m matrix using
     the SPArse Modeling Software (J. Mairal, F. Bach, J. Ponce and G. Sapiro,
     2010)
 
@@ -29,7 +36,7 @@ class staNMF:
     Can be called and used by a script, imported as "staNMF"
     (see requirements.txt for required packages)
 
-    To read in Wu et al's 2016 drosophila spatial expressoin data, set
+    To read in Wu et al's 2016 drosophila spatial expression data, set:
     filename = 'example'
 
     INPUT:
@@ -44,9 +51,12 @@ class staNMF:
 
     :param: K2 (int, optional with default 30): highest # PP's (K) tested
 
-    :param: weighted (bool, optional, default False): performs weighting step
-    to account for multiple columns of the same name
-    (True if filename='example')
+    :param: sample_weights (bool or list, optional, default False):
+    performs weighting step on full data matrix to account for multiple columns
+    of the same name (filename='example'defaults to special case of weighting
+    (delimited by ".")) If sample_weights is a list of custom weights, it must
+    be equal in length to the number of columns in the matrix, and this list of
+    weights will be applied across columns
 
     :param: seed (int, optional with default 123): sets numpy random seed
 
@@ -54,109 +64,122 @@ class staNMF:
     repetitions of NMF to be performed on each value of K, for use in stability
     analysis
 
-    :param: finished (bool, optional with default False): True if runNMF has
-    been completed for the dataset and k range for which you wish to calculate
-    instability. To surpass NMF step if fileID file already contains
-    factorization solutions for X in your range (K1, K2], set to True
+    :param: NMF_finished (bool, optional with default False): True if runNMF
+    has been completed for the dataset and k range for which you wish to
+    calculate instability. To surpass NMF step if fileID file already contains
+    factorization solutions for X in your range [K1, K2], set to True
     '''
 
     def __init__(self, filename, folderID="", K1=15, K2=30,
-                 weighted=False, seed=123, replicates=100, finished=False):
+                 sample_weights=False, seed=123, replicates=100,
+                 NMF_finished=False):
         warnings.filterwarnings("ignore")
         self.K1 = K1
         self.K2 = K2
-        self.weighted = weighted
+        self.sampleweights = sample_weights
         self.seed = seed
         self.guess = np.array([])
         self.guessdict = {}
         self.replicates = replicates
         self.X = []
         if filename == 'example':
-            self.fn = "updatedexpressionpatterns.csv"
-            self.weighted = True
+            self.fn = "data/WuExampleExpression.csv"
+            self.sample_weights = True
         else:
             self.fn = filename
         self.folderID = folderID
         self.rowidmatrix = []
-        self.finished = finished
+        self.NMF_finished = NMF_finished
         self.instabilitydict = {}
-        self.load()
+        self.load_data()
         self.instabilityarray = []
+        self.stability_finished = False
 
     def initialguess(self, X, K, i):
 
         '''
         Randomly samples K columns from X; sets input matrix guess to be a
         fortran array, and sets 'guesslist', a list of the column indices
-        sampled from X for this replication of NMF
+        sampled from X for this replication of NMF;
 
         Arguments:
-        :param X :full matrix
-        :param K : Number of columns to select at random
+        :param: X(numpy array, required): full matrix
+        :param: K(int, required): Number of columns to select at random to be
+        used as the 'initial guess' for the K PPs in the current simulation
+        of NMF
+        :param: i(int, required): Key at which indexlist will be stored(current
+        replicate of NMF)
 
         Usage:
         Called by runNMF
         '''
-
         random.seed(self.seed)
-        indexlist = random.sample(np.arange(1, len(X[1])), K)
+        indexlist = random.sample(np.arange(1, X.shape[1]), K)
         self.guess = np.asfortranarray(X[:, indexlist])
         self.guessdict[i] = indexlist
 
-    def load(self):
+    def load_data(self):
         '''
-        Loads full matrix from .csv file to
+        Loads full data matrix from .csv file into numpy array; if the
+        self.sample_weights variable is True, weights column names by their
+        number of replicate occurances
 
         Usage:
         Called by constructor
 
         '''
-        if not self.finished:
+        if not self.NMF_finished:
 
             try:
                 csvfile = open(self.fn, "r")
             except:
-                print("File ''" + str(self.fn) + "' not found.")
+                ("File ''" + str(self.fn) + "' not found.")
                 sys.exit()
 
-            csvreader = csv.reader(csvfile)
-            colnames = csvreader.next()[1:]
-            workingmatrix = []
-            for row in csvreader:
-                line = row[1:]
-                for w in range(len(line)):
-                    line[w] = float(line[w])
-                workingmatrix.append(line)
-                self.rowidmatrix.append(row[0])
+            workingmatrix = pd.read_csv(csvfile, index_col=0)
+            self.rowidmatrix = workingmatrix.index.values
+            colnames = workingmatrix.columns.values
 
-            if self.weighted:
-                for g in range(len(colnames)):
-                    if "." in str(colnames[g]):
-                        index = colnames[g].find(".")
-                        string = colnames[g]
-                        colnames[g] = string[:index]
+            if self.sample_weights is not False:
+                if type(self.sampleweights) is list:
+                    if len(self.sampleweights) != len(colnames):
+                        print("sample_weights length must equal " +
+                              "the number of columns.")
+                        sys.exit()
+                    else:
+                        weight = self.sample_weights
+                else:
+                    # Special formatting case for Wu et al. expression data
+                    if self.fn == "data/WuExampleExpression.csv":
+                        for g in range(len(colnames)):
+                            if "." in str(colnames[g]):
+                                index = colnames[g].find(".")
+                                string = colnames[g]
+                                colnames[g] = string[:index]
 
-                colUnique = np.unique(colnames)
-                colNum = np.zeros(len(colUnique))
-                weight = np.zeros(len(colnames))
+                    colUnique = np.unique(colnames)
+                    colNum = np.zeros(len(colUnique))
+                    weight = np.zeros(len(colnames))
 
-                for i in range(len(colUnique)):
-                    colNum[i] = colnames.count(colUnique[i])
-                    weight[i] = 1/(colNum[i])
-                for j in range(len(workingmatrix)):
-                    for i in range(len(colnames)):
-                        num = float(workingmatrix[j][i])
-                        workingmatrix[j][i] = math.sqrt(float(weight[i]) * num)
+                    for i in range(len(colUnique)):
+                        colNum[i] = list(colnames).count(colUnique[i])
+                        weight[i] = 1/(colNum[i])
+
+                workingmatrix = workingmatrix.apply(lambda x: weight * x,
+                                                    axis=1)
+                workingmatrix = workingmatrix.applymap(lambda x: math.sqrt(x))
+
             X1 = (np.array(workingmatrix).astype(float))
             self.X = np.asfortranarray(X1)
-            print(type(self.X))
 
     def runNMF(self):
         '''
         Iterates through range of integers between the K1 and K2 provided (By
         default, K1=15 and K2=30)
+
+        Usage: Called by user (ex: '$ instance.runNMF()')
         '''
-        self.finished = False
+        self.NMF_finished = False
         numPatterns = np.arange(self.K1, self.K2)
         for k in range(len(numPatterns)):
             K = numPatterns[k]
@@ -172,7 +195,6 @@ class staNMF:
             print("Working on " + str(K) + "...\n")
 
             for l in range(self.replicates):
-                print(l)
                 self.initialguess(self.X, K, l)
                 Dsolution = spams.trainDL(
                     # Matrix
@@ -196,7 +218,7 @@ class staNMF:
                     posAlpha=True,
                     # Positivity constraint on solution
                     posD=True,
-                    # Limited information printed about progress
+                    # Limited information ed about progress
                     verbose=False,
                     gamma1=0)
 
@@ -204,14 +226,13 @@ class staNMF:
                 outputfilename = "factorization_" + str(l) + ".csv"
                 outputfilepath = os.path.join(path, outputfilename)
 
-                outputfile = open(outputfilepath, "w")
-                writer = csv.writer(outputfile)
-                for i in range(len(self.rowidmatrix)):
-                    dlist = Dsolution[i].tolist()
-                    dlist.insert(0, str(self.rowidmatrix[i]).replace("'", ""))
-
-                    writer.writerow(dlist)
-                outputfile.close()
+                with open(outputfilepath, "w") as outputfile:
+                    writer = csv.writer(outputfile)
+                    for i in range(len(self.rowidmatrix)):
+                        dlist = Dsolution[i].tolist()
+                        dlist.insert(0, str(self.rowidmatrix[i]).replace("'",
+                                                                         ""))
+                        writer.writerow(dlist)
 
             indexoutputstring = "selectedcolumns" + str(K) + ".txt"
             indexoutputpath = os.path.join(path, indexoutputstring)
@@ -221,7 +242,7 @@ class staNMF:
                                       '\n')
             indexoutputfile.close()
 
-            self.finished = True
+            self.NMF_finished = True
 
     def amariMaxError(self, correlation):
         '''
@@ -263,7 +284,6 @@ class staNMF:
 
         '''
         corrmatrix = []
-
         for a in range(k):
             for b in range(k):
                 c = np.corrcoef(A[:, a], B[:, b])
@@ -296,8 +316,8 @@ class staNMF:
 
         numReplicates = self.replicates
 
-        if self.finished is False:
-            print("staNMF Error: runNMF is not complete\n")
+        if self.NMF_finished is False:
+            ("staNMF Error: runNMF is not complete\n")
         else:
             numPatterns = np.arange(k1, k2+1)
 
@@ -314,20 +334,20 @@ class staNMF:
             inputfile.close()
             d = np.size(firstmatrix, 0)
             for k in numPatterns:
-                print("Calculating instability for " + str(k))
+                ("Calculating instability for " + str(k))
                 path = str("./staNMFDicts" + str(self.folderID) + "/K=" +
                            str(k)+"/")
                 Dhat = np.zeros((numReplicates, d, k))
 
-                for L in range(numReplicates):
-                    inputfilename = "factorization_" + str(L) + ".csv"
+                for replicate in range(numReplicates):
+                    inputfilename = "factorization_" + str(replicate) + ".csv"
                     inputfilepath = os.path.join(path, inputfilename)
-                    inputfile = open(inputfilepath, "rb")
-                    reader = csv.reader(inputfile, delimiter=',')
-                    inputmatrix = np.array(list(reader))
-                    replicatematrix = inputmatrix[:, 1:]
-                    Dhat[L] = replicatematrix
-                    inputfile.close()
+                    with open(inputfilepath, "rb") as inputfile:
+                        matrix1 = pd.read_csv(inputfile, header=None)
+                        inputmatrix = matrix1.drop(0, axis=1)
+                        inputmatrix.columns = np.arange(0, matrix1.shape[1]-1)
+
+                    Dhat[replicate] = inputmatrix
 
                 distMat = np.zeros(shape=(numReplicates, numReplicates))
 
@@ -342,10 +362,27 @@ class staNMF:
 
                 self.instabilitydict[k] = (np.sum(distMat) / (numReplicates *
                                            (numReplicates-1)))
+
                 outputfile = open("instability.csv", "w")
                 for i in sorted(self.instabilitydict):
                     outputfile.write(str(i) + "," +
                                      str(self.instabilitydict[i]) + "\n")
+
+    def get_instability(self):
+        '''
+        Retrieves instability values calculated in this instance of staNMF
+
+        Returns:
+        dictionary with keys K, values instability index
+
+        Usage: Called by user (not required for output of 'instablity.csv', but
+        returns usable python dictionary of these calculations)
+        '''
+        if self.stability_finished:
+            return self.instabilitydict
+        else:
+            print("Instability has not yet been calculated for your NMF resu" +
+                  "lts. Use staNMF.instability() to continue.")
 
     def plot(self, dataset_title="Drosophila Spatial Expression Data", xmax=0,
              xmin=-1, ymin=0, ymax=0, xlab="K", ylab="Instability Index"):
@@ -353,11 +390,13 @@ class staNMF:
         Plots instability results for all K's between and including K1 and K2
         with K on the X axis and instability on the Y axis
 
+        Arguments:
+
         :param: dataset_title (str, optional, default "Drosophila
         Expression Data")
 
         :param: ymax (float, optional,  default
-        largest Y + (largestY/# of points)
+        largest Y + (largest Y/ # of points)
 
         :param: xmax (float, optional, default K2+1)
 
@@ -365,8 +404,9 @@ class staNMF:
 
         :param: ylab (string, default "Instability Index") y-axis label
 
-        Return:
-        saves plot as <dataset_title>.png
+        Returns: None, saves plot as <dataset_title>.png
+
+        Usage: Called by user to generate plot
         '''
         kArray = []
         for i in sorted(self.instabilitydict):

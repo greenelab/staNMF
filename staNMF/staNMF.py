@@ -235,14 +235,14 @@ class staNMF:
                 outputfilepath = os.path.join(path, outputfilename)
 
                 Dsolution1 = pd.DataFrame(Dsolution, index=self.rowidmatrix)
-                Dsolution1.to_csv(outputfilepath, sep=',', header=None)
+                Dsolution1.to_csv(outputfilepath, header=None)
 
             indexoutputstring = "selectedcolumns" + str(K) + ".csv"
             indexoutputpath = os.path.join(path, indexoutputstring)
 
             guessDF = pd.DataFrame.from_dict(self.guessdict)
             guessDF.columns = ["Replicate", "Columns Selected"]
-            guessDF.to_csv(indexoutputpath, sep=',')
+            guessDF.to_csv(indexoutputpath)
 
             for m in sorted(self.guessdict):
                 indexoutputfile.write(str(m) + '\t' + str(self.guessdict[m]) +

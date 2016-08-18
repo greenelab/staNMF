@@ -11,10 +11,10 @@ import warnings
 import argparse
 import collections
 import csv
+from timeit import default_timer as timer
 
 import numpy as np
 import pandas as pd
-from timeit import default_timer as timer
 from scipy.stats import pearsonr
 import scipy.stats as stats
 import matplotlib.pyplot as plt
@@ -23,7 +23,7 @@ import spams
 
 class staNMF:
     '''
-    (C) 2016 Amy E Campbell
+    2016 Amy E Campbell
 
     Python 2.7 implementation of Siqi Wu's 03/2016 Stability NMF (staNMF)
 
@@ -83,7 +83,7 @@ class staNMF:
         self.replicates = replicates
         self.X = []
         if filename == 'example':
-            self.fn = "data/WuExampleExpression.csv"
+            self.fn = os.path.join("data", "WuExampleExpression.csv")
             self.sample_weights = True
         else:
             self.fn = filename
@@ -141,21 +141,17 @@ class staNMF:
             colnames = workingmatrix.columns.values
 
             if self.sample_weights is not False:
-                if type(self.sampleweights) is list:
+                if isinstance(self.sampleweights, list):
                     if len(self.sampleweights) != len(colnames):
-                        print("sample_weights length must equal " +
-                              "the number of columns.")
-                        sys.exit()
+                        raise ValueError("sample_weights length must equal the"
+                                         " number of columns.")
                     else:
                         weight = self.sample_weights
                 else:
                     # Special formatting case for Wu et al. expression data
-                    if self.fn == "data/WuExampleExpression.csv":
-                        for g in range(len(colnames)):
-                            if "." in str(colnames[g]):
-                                index = colnames[g].find(".")
-                                string = colnames[g]
-                                colnames[g] = string[:index]
+                    if self.fn == os.path.join("data",
+                                               "WuExampleExpression.csv"):
+                        colnames = [(str(x).split('.'))[0] for x in colnames]
 
                     colUnique = np.unique(colnames)
                     colNum = np.zeros(len(colUnique))
@@ -175,9 +171,21 @@ class staNMF:
     def runNMF(self):
         '''
         Iterates through range of integers between the K1 and K2 provided (By
-        default, K1=15 and K2=30)
+        default, K1=15 and K2=30), runs NMF using SPAMS package; outputs
+        NMF matrix files (.csv form) and updates self.guessdict containing the
+        columns selected for the initial guess input(as calculated by
+        staNMF.initialguess())
 
         Usage: Called by user (ex: '$ instance.runNMF()')
+
+        Return: None
+
+        Output:
+        (k2-k1) folders, each containing files for every replicate
+        (labeled factorization_<replicate>.csv) , and each containing
+        a 'selectedcolumns.txt' file, which prints 'self.guessdict', a
+        dictionary with keys <factorzation #>, values <columns selected>
+
         '''
         self.NMF_finished = False
         numPatterns = np.arange(self.K1, self.K2)
@@ -218,7 +226,7 @@ class staNMF:
                     posAlpha=True,
                     # Positivity constraint on solution
                     posD=True,
-                    # Limited information ed about progress
+                    # Limited information about progress
                     verbose=False,
                     gamma1=0)
 
@@ -226,17 +234,16 @@ class staNMF:
                 outputfilename = "factorization_" + str(l) + ".csv"
                 outputfilepath = os.path.join(path, outputfilename)
 
-                with open(outputfilepath, "w") as outputfile:
-                    writer = csv.writer(outputfile)
-                    for i in range(len(self.rowidmatrix)):
-                        dlist = Dsolution[i].tolist()
-                        dlist.insert(0, str(self.rowidmatrix[i]).replace("'",
-                                                                         ""))
-                        writer.writerow(dlist)
+                Dsolution1 = pd.DataFrame(Dsolution, index=self.rowidmatrix)
+                Dsolution1.to_csv(outputfilepath, sep=',', header=None)
 
-            indexoutputstring = "selectedcolumns" + str(K) + ".txt"
+            indexoutputstring = "selectedcolumns" + str(K) + ".csv"
             indexoutputpath = os.path.join(path, indexoutputstring)
-            indexoutputfile = open(indexoutputpath, "w")
+
+            guessDF = pd.DataFrame.from_dict(self.guessdict)
+            guessDF.columns = ["Replicate", "Columns Selected"]
+            guessDF.to_csv(indexoutputpath, sep=',')
+
             for m in sorted(self.guessdict):
                 indexoutputfile.write(str(m) + '\t' + str(self.guessdict[m]) +
                                       '\n')
@@ -381,8 +388,8 @@ class staNMF:
         if self.stability_finished:
             return self.instabilitydict
         else:
-            print("Instability has not yet been calculated for your NMF resu" +
-                  "lts. Use staNMF.instability() to continue.")
+            print("Instability has not yet been calculated for your NMF"
+                  "results. Use staNMF.instability() to continue.")
 
     def plot(self, dataset_title="Drosophila Spatial Expression Data", xmax=0,
              xmin=-1, ymin=0, ymax=0, xlab="K", ylab="Instability Index"):

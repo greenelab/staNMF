@@ -1,7 +1,7 @@
 '''
-(C) 2016 Amy Campbell
+2016 Amy Campbell
 Example script using staNMF class. Reproduces Wu et al. 2016
-staNMF results for drosophila spatial expression data by
+staNMF for drosophila spatial expression data by
 running staNMF for # principal patterns K between 15 and 30
 '''
 
@@ -22,5 +22,5 @@ exampleNMF.runNMF()
 exampleNMF.instability(k1=15, k2=30)
 
 # Plot instability against K with a custom title
-exampleNMF.plot(dataset_title="Example staNMF in Drosophila \
-Spatial Expression Data 8-13")
+exampleNMF.plot(dataset_title="Example staNMF in Drosophila"
+                "Spatial Expression Data 8-13")

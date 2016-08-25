@@ -1,0 +1,34 @@
+Metadata-Version: 1.1
+Name: staNMF
+Version: 0.1
+Summary: python 2.7 implementation of stability NMF (Siqi Wu 2016)
+Home-page: https://github.com/greenelab/staNMF
+Author: Greene Lab
+Author-email: team@greenelab.com
+License: LICENSE.txt
+Description: Amy Campbell, 2016
+        
+        staNMF
+        
+        Python 2.7 implementation of Siqi Wu et al.'s 2016 stability NMF(staNMF) for selecting the number of NMF clusters(K) that results in the most stable output. 
+        
+        Package Contents:
+        	staNMF.py - staNMF.py class includes the necessary methods to perform stability NMF on a 
+        	user-specified .csv datase (see sourcecode/staNMF_Example for precise usage instructions)
+        
+        	staNMF_Example.py - Example of staNMF demonstrated on Wu et al.'s 2016 drosophila spatial 		expression data between K=15 and K=30; Generates sample factorizations, calculates instability 		index, and plots instability against K
+        	
+        	data/WuExampleExpression.csv - sample dataset 
+        
+        Installation:
+        
+        pip install staNMF 
+        
+        
+Platform: UNKNOWN
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Topic :: Scientific/Engineering :: Bio-Informatics

@@ -1,0 +1,7 @@
+README.txt
+setup.py
+staNMF.egg-info/PKG-INFO
+staNMF.egg-info/SOURCES.txt
+staNMF.egg-info/dependency_links.txt
+staNMF.egg-info/requires.txt
+staNMF.egg-info/top_level.txt

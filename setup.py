@@ -1,8 +1,11 @@
 import os
 from setuptools import setup, find_packages
+import distutils.core
 
 with open(os.path.join(os.path.dirname(__file__), 'README.txt')) as readme:
-    README = readme.read()
+    long_description = readme.read()
+
+distutils.core.setup(name='Distutils', long_description=long_description)
 
 # Allow setup.py to be run from any path
 os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
@@ -14,7 +17,7 @@ setup(
       include_package_data=True,
       license='LICENSE.txt',
       description='python 2.7 implementation of stability NMF (Siqi Wu 2016)',
-      long_description=README,
+      long_description=long_description,
       url='https://github.com/greenelab/staNMF',
       author='Greene Lab',
       author_email='team@greenelab.com',

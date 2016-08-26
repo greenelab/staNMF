@@ -227,10 +227,10 @@ class staNMF:
                       "verbose": False,
                       "gamma1": 0}
 
-            if kwargs is not None:
-                for key in kwargs:
-                    if key in param:
-                        param[key] = kwargs[key]
+            for p in param:
+                if p not in kwargs:
+                    kwargs[p] = param[p]
+
             for l in range(self.replicates):
                 self.initialguess(self.X, K, l)
                 Dsolution = spams.trainDL(
@@ -238,9 +238,7 @@ class staNMF:
                     self.X,
                     # Initial guess as provided by initialguess()
                     D=self.guess,
-                    **param)
-                print(l)
-
+                    **kwargs)
 
                 # write solution to a csv file in the staNMFDicts/k=K/ folder
                 outputfilename = "factorization_" + str(l) + ".csv"

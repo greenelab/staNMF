@@ -34,5 +34,5 @@ Installation*:
 
 pip install staNMF
 
-*Requires SPAMs package, available from Julien Mairal et al. at
+*Requires SPAMs package(version 2.5), available from Julien Mairal et al. at
 http://spams-devel.gforge.inria.fr/downloads.html

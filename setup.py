@@ -11,7 +11,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 setup(
       name='staNMF',
       version='0.1',
-      packages=find_packages(),
+      packages=find_packages(exclude='spams'),
       include_package_data=True,
       license='LICENSE.txt',
       description='python 2.7 implementation of stability NMF (Siqi Wu 2016)',

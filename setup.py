@@ -2,7 +2,7 @@ import os
 from setuptools import setup, find_packages
 import distutils.core
 
-with open(os.path.join(os.path.dirname(__file__), 'README.txt')) as readme:
+with open(os.path.join(os.path.dirname(__file__), 'README.rst')) as readme:
     long_description = readme.read()
 
 distutils.core.setup(name='Distutils', long_description=long_description)

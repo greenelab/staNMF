@@ -16,3 +16,4 @@ var/
 .installed.cfg
 *.egg
 *.pyc
+.Rhistory

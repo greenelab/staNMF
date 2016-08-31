@@ -1,4 +1,5 @@
 
+#!/usr/bin/env python
 
 ###########################
 # Required Pacakges
@@ -168,7 +169,7 @@ class staNMF:
             X1 = (np.array(workingmatrix).astype(float))
             self.X = np.asfortranarray(X1)
 
-    def runNMF(self):
+    def runNMF(self, **kwargs):
         '''
         Iterates through range of integers between the K1 and K2 provided (By
         default, K1=15 and K2=30), runs NMF using SPAMS package; outputs
@@ -177,6 +178,9 @@ class staNMF:
         staNMF.initialguess())
 
         Usage: Called by user (ex: '$ instance.runNMF()')
+
+        Arguments: Optional **kwargs allows user to update spams.trainDL()
+        parameters
 
         Return: None
 
@@ -187,6 +191,7 @@ class staNMF:
         dictionary with keys <factorzation #>, values <columns selected>
 
         '''
+
         self.NMF_finished = False
         numPatterns = np.arange(self.K1, self.K2)
         for k in range(len(numPatterns)):
@@ -202,6 +207,30 @@ class staNMF:
 
             print("Working on " + str(K) + "...\n")
 
+            param = {"numThreads": -1,
+                      # minibatch size
+                      "batchsize": min(1024, n),
+                      # Number of columns in solution
+                      "K": K,
+                      "lambda1": 0,
+                      # Number of iterations to go into this round of NMF
+                      "iter": 500,
+                      # Specify optimization problem to solve
+                      "mode": 2,
+                      # Specify convex set
+                      "modeD": 0,
+                      # Positivity constraint on coefficients
+                      "posAlpha": True,
+                      # Positivity constraint on solution
+                      "posD": True,
+                      # Limited information about progress
+                      "verbose": False,
+                      "gamma1": 0}
+
+            for p in param:
+                if p not in kwargs:
+                    kwargs[p] = param[p]
+
             for l in range(self.replicates):
                 self.initialguess(self.X, K, l)
                 Dsolution = spams.trainDL(
@@ -209,26 +238,7 @@ class staNMF:
                     self.X,
                     # Initial guess as provided by initialguess()
                     D=self.guess,
-                    # All available CPUs/cores
-                    numThreads=-1,
-                    # minibatch size
-                    batchsize=min(1024, n),
-                    # Number of columns in solution
-                    K=K,
-                    lambda1=0,
-                    # Number of iterations to go into this round of NMF
-                    iter=500,
-                    # Specify optimization problem to solve
-                    mode=2,
-                    # Specify convex set
-                    modeD=0,
-                    # Positivity constraint on coefficients
-                    posAlpha=True,
-                    # Positivity constraint on solution
-                    posD=True,
-                    # Limited information about progress
-                    verbose=False,
-                    gamma1=0)
+                    **kwargs)
 
                 # write solution to a csv file in the staNMFDicts/k=K/ folder
                 outputfilename = "factorization_" + str(l) + ".csv"

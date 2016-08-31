@@ -1,2 +1,0 @@
-# staNMF
-Stability NMF

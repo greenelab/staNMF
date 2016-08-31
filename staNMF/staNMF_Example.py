@@ -13,11 +13,9 @@ import staNMF as st
 # is not required
 exampleNMF = st.staNMF(filename='example',
                        folderID="DrosophilaExpression")
-
 # Run NMF and output factorization solutions over the range
 # of K's
 exampleNMF.runNMF()
-
 # Calculate instability for each K
 exampleNMF.instability(k1=15, k2=30)
 

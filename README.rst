@@ -3,9 +3,8 @@ Amy Campbell, 2016
 
 staNMF
 ----------
-Python 2.7 implementation of Siqi Wu et al.'s 2016 stability NMF(staNMF) for
-selecting the number of NMF clusters(K) that results in the most stable output.
-
+Python 2.7 implementation of `Siqi Wu et al.'s 2016 stability NMF (staNMF)
+<http://doi.org/10.1073/pnas.1521171113>`_
 
 Package Contents
 ----------

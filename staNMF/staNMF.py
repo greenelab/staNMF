@@ -21,7 +21,6 @@ import scipy.stats as stats
 import matplotlib.pyplot as plt
 import spams
 
-
 class staNMF:
     '''
     2016 Amy E Campbell
@@ -77,7 +76,7 @@ class staNMF:
         warnings.filterwarnings("ignore")
         self.K1 = K1
         self.K2 = K2
-        self.sampleweights = sample_weights
+        self.sample_weights = sample_weights
         self.seed = seed
         self.guess = np.array([])
         self.guessdict = {}
@@ -95,7 +94,7 @@ class staNMF:
         self.load_data()
         self.instabilityarray = []
         self.stability_finished = False
-
+	random.seed(self.seed)
     def initialguess(self, X, K, i):
 
         '''
@@ -114,7 +113,7 @@ class staNMF:
         Usage:
         Called by runNMF
         '''
-        random.seed(self.seed)
+
         indexlist = random.sample(np.arange(1, X.shape[1]), K)
         self.guess = np.asfortranarray(X[:, indexlist])
         self.guessdict[i] = indexlist
@@ -134,7 +133,7 @@ class staNMF:
             try:
                 csvfile = open(self.fn, "r")
             except:
-                ("File ''" + str(self.fn) + "' not found.")
+                print("File ''" + str(self.fn) + "' not found.")
                 sys.exit()
 
             workingmatrix = pd.read_csv(csvfile, index_col=0)
@@ -142,8 +141,8 @@ class staNMF:
             colnames = workingmatrix.columns.values
 
             if self.sample_weights is not False:
-                if isinstance(self.sampleweights, list):
-                    if len(self.sampleweights) != len(colnames):
+                if isinstance(self.sample_weights, list):
+                    if len(self.sample_weights) != len(colnames):
                         raise ValueError("sample_weights length must equal the"
                                          " number of columns.")
                     else:
@@ -193,7 +192,7 @@ class staNMF:
         '''
 
         self.NMF_finished = False
-        numPatterns = np.arange(self.K1, self.K2)
+        numPatterns = np.arange(self.K1, self.K2+1)
         for k in range(len(numPatterns)):
             K = numPatterns[k]
             path = str("./staNMFDicts" + str(self.folderID) + "/K=" + str(K) +
@@ -250,14 +249,12 @@ class staNMF:
             indexoutputstring = "selectedcolumns" + str(K) + ".csv"
             indexoutputpath = os.path.join(path, indexoutputstring)
 
-            guessDF = pd.DataFrame.from_dict(self.guessdict)
-            guessDF.columns = ["Replicate", "Columns Selected"]
-            guessDF.to_csv(indexoutputpath)
 
-            for m in sorted(self.guessdict):
-                indexoutputfile.write(str(m) + '\t' + str(self.guessdict[m]) +
-                                      '\n')
-            indexoutputfile.close()
+            with open(indexoutputpath, "w") as indexoutputfile:
+                for m in sorted(self.guessdict):
+                    indexoutputfile.write(str(m) + '\t' + str(self.guessdict[m]) +
+                                          '\n')
+
 
             self.NMF_finished = True
 

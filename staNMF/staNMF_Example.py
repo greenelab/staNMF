@@ -17,8 +17,8 @@ exampleNMF = st.staNMF(filename='example',
 # of K's
 exampleNMF.runNMF()
 # Calculate instability for each K
-exampleNMF.instability(k1=15, k2=30)
+exampleNMF.instability()
 
 # Plot instability against K with a custom title
 exampleNMF.plot(dataset_title="Example staNMF in Drosophila"
-                "Spatial Expression Data 8-13")
+                "Spatial Expression Data")

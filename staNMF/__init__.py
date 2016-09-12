@@ -1,0 +1,2 @@
+from staNMF import staNMF
+

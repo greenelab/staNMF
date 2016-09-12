@@ -77,7 +77,7 @@ class staNMF:
         warnings.filterwarnings("ignore")
         self.K1 = K1
         self.K2 = K2
-        self.sampleweights = sample_weights
+        self.sample_weights = sample_weights
         self.seed = seed
         self.guess = np.array([])
         self.guessdict = {}
@@ -95,6 +95,7 @@ class staNMF:
         self.load_data()
         self.instabilityarray = []
         self.stability_finished = False
+        random.seed(self.seed)
 
     def initialguess(self, X, K, i):
 
@@ -114,7 +115,7 @@ class staNMF:
         Usage:
         Called by runNMF
         '''
-        random.seed(self.seed)
+
         indexlist = random.sample(np.arange(1, X.shape[1]), K)
         self.guess = np.asfortranarray(X[:, indexlist])
         self.guessdict[i] = indexlist
@@ -130,20 +131,14 @@ class staNMF:
 
         '''
         if not self.NMF_finished:
-
-            try:
-                csvfile = open(self.fn, "r")
-            except:
-                ("File ''" + str(self.fn) + "' not found.")
-                sys.exit()
-
+            csvfile = open(self.fn, "r")
             workingmatrix = pd.read_csv(csvfile, index_col=0)
             self.rowidmatrix = workingmatrix.index.values
             colnames = workingmatrix.columns.values
 
             if self.sample_weights is not False:
-                if isinstance(self.sampleweights, list):
-                    if len(self.sampleweights) != len(colnames):
+                if isinstance(self.sample_weights, list):
+                    if len(self.sample_weights) != len(colnames):
                         raise ValueError("sample_weights length must equal the"
                                          " number of columns.")
                     else:
@@ -193,7 +188,7 @@ class staNMF:
         '''
 
         self.NMF_finished = False
-        numPatterns = np.arange(self.K1, self.K2)
+        numPatterns = np.arange(self.K1, self.K2+1)
         for k in range(len(numPatterns)):
             K = numPatterns[k]
             path = str("./staNMFDicts" + str(self.folderID) + "/K=" + str(K) +
@@ -208,24 +203,24 @@ class staNMF:
             print("Working on " + str(K) + "...\n")
 
             param = {"numThreads": -1,
-                      # minibatch size
-                      "batchsize": min(1024, n),
-                      # Number of columns in solution
-                      "K": K,
-                      "lambda1": 0,
-                      # Number of iterations to go into this round of NMF
-                      "iter": 500,
-                      # Specify optimization problem to solve
-                      "mode": 2,
-                      # Specify convex set
-                      "modeD": 0,
-                      # Positivity constraint on coefficients
-                      "posAlpha": True,
-                      # Positivity constraint on solution
-                      "posD": True,
-                      # Limited information about progress
-                      "verbose": False,
-                      "gamma1": 0}
+                     # minibatch size
+                     "batchsize": min(1024, n),
+                     # Number of columns in solution
+                     "K": K,
+                     "lambda1": 0,
+                     # Number of iterations to go into this round of NMF
+                     "iter": 500,
+                     # Specify optimization problem to solve
+                     "mode": 2,
+                     # Specify convex set
+                     "modeD": 0,
+                     # Positivity constraint on coefficients
+                     "posAlpha": True,
+                     # Positivity constraint on solution
+                     "posD": True,
+                     # Limited information about progress
+                     "verbose": False,
+                     "gamma1": 0}
 
             for p in param:
                 if p not in kwargs:
@@ -250,14 +245,10 @@ class staNMF:
             indexoutputstring = "selectedcolumns" + str(K) + ".csv"
             indexoutputpath = os.path.join(path, indexoutputstring)
 
-            guessDF = pd.DataFrame.from_dict(self.guessdict)
-            guessDF.columns = ["Replicate", "Columns Selected"]
-            guessDF.to_csv(indexoutputpath)
-
-            for m in sorted(self.guessdict):
-                indexoutputfile.write(str(m) + '\t' + str(self.guessdict[m]) +
-                                      '\n')
-            indexoutputfile.close()
+            with open(indexoutputpath, "w") as indexoutputfile:
+                for m in sorted(self.guessdict):
+                    indexoutputfile.write(str(m) + '\t' +
+                                          str(self.guessdict[m]) + '\n')
 
             self.NMF_finished = True
 
@@ -440,7 +431,8 @@ class staNMF:
         plt.axis([xmin, xmax, ymin, ymax])
         plt.xlabel(xlab)
         plt.ylabel(ylab)
-        plt.title(str('Stability NMF Results: Principal Patterns vs.\
-                       Instability in ' + dataset_title))
+        plt.axes.titlesize = 'smaller'
+        plt.title(str('Stability NMF Results: Principal Patterns vs.'
+                      'Instability in ' + dataset_title))
         plotname = str(dataset_title + ".png")
         plt.savefig(plotname)

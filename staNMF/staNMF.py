@@ -21,6 +21,7 @@ import scipy.stats as stats
 import matplotlib.pyplot as plt
 import spams
 
+
 class staNMF:
     '''
     2016 Amy E Campbell
@@ -94,7 +95,8 @@ class staNMF:
         self.load_data()
         self.instabilityarray = []
         self.stability_finished = False
-	random.seed(self.seed)
+        random.seed(self.seed)
+
     def initialguess(self, X, K, i):
 
         '''
@@ -129,13 +131,7 @@ class staNMF:
 
         '''
         if not self.NMF_finished:
-
-            try:
-                csvfile = open(self.fn, "r")
-            except:
-                print("File ''" + str(self.fn) + "' not found.")
-                sys.exit()
-
+            csvfile = open(self.fn, "r")
             workingmatrix = pd.read_csv(csvfile, index_col=0)
             self.rowidmatrix = workingmatrix.index.values
             colnames = workingmatrix.columns.values
@@ -207,24 +203,24 @@ class staNMF:
             print("Working on " + str(K) + "...\n")
 
             param = {"numThreads": -1,
-                      # minibatch size
-                      "batchsize": min(1024, n),
-                      # Number of columns in solution
-                      "K": K,
-                      "lambda1": 0,
-                      # Number of iterations to go into this round of NMF
-                      "iter": 500,
-                      # Specify optimization problem to solve
-                      "mode": 2,
-                      # Specify convex set
-                      "modeD": 0,
-                      # Positivity constraint on coefficients
-                      "posAlpha": True,
-                      # Positivity constraint on solution
-                      "posD": True,
-                      # Limited information about progress
-                      "verbose": False,
-                      "gamma1": 0}
+                     # minibatch size
+                     "batchsize": min(1024, n),
+                     # Number of columns in solution
+                     "K": K,
+                     "lambda1": 0,
+                     # Number of iterations to go into this round of NMF
+                     "iter": 500,
+                     # Specify optimization problem to solve
+                     "mode": 2,
+                     # Specify convex set
+                     "modeD": 0,
+                     # Positivity constraint on coefficients
+                     "posAlpha": True,
+                     # Positivity constraint on solution
+                     "posD": True,
+                     # Limited information about progress
+                     "verbose": False,
+                     "gamma1": 0}
 
             for p in param:
                 if p not in kwargs:
@@ -249,12 +245,10 @@ class staNMF:
             indexoutputstring = "selectedcolumns" + str(K) + ".csv"
             indexoutputpath = os.path.join(path, indexoutputstring)
 
-
             with open(indexoutputpath, "w") as indexoutputfile:
                 for m in sorted(self.guessdict):
-                    indexoutputfile.write(str(m) + '\t' + str(self.guessdict[m]) +
-                                          '\n')
-
+                    indexoutputfile.write(str(m) + '\t' +
+                                          str(self.guessdict[m]) + '\n')
 
             self.NMF_finished = True
 
@@ -437,7 +431,8 @@ class staNMF:
         plt.axis([xmin, xmax, ymin, ymax])
         plt.xlabel(xlab)
         plt.ylabel(ylab)
-        plt.title(str('Stability NMF Results: Principal Patterns vs.\
-                       Instability in ' + dataset_title))
+        plt.axes.titlesize = 'smaller'
+        plt.title(str('Stability NMF Results: Principal Patterns vs.'
+                      'Instability in ' + dataset_title))
         plotname = str(dataset_title + ".png")
         plt.savefig(plotname)

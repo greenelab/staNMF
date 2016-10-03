@@ -27,16 +27,21 @@ against K
 ============================
 data/WuExampleExpression.csv
 ============================
-sample dataset
+sample dataset (also available for download `here
+<http://insitu.fruitfly.org/cgi-bin/ex/insitu.pl?t=html&p=downloads>`_)
 
 
 Installation
 -------------
 $ pip install staNMF
 
-*Please note that staNMF requires SPAMs package(version 2.5), which is
+*Please note that staNMF requires SPAMs package (version 2.5), which is
 available from* `Julien Mairal et al.
-<http://spams-devel.gforge.inria.fr/downloads.html>`_
+<http://spams-devel.gforge.inria.fr/downloads.html>`_ , or from Anaconda
+using:
+
+$ conda install -c conda-forge python-spams=2.5
+
 
 Acknowledgements
 ----------------

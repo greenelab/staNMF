@@ -7,6 +7,7 @@
 import math
 import random
 import os
+import shutil
 import sys
 import warnings
 import argparse
@@ -18,6 +19,8 @@ import numpy as np
 import pandas as pd
 from scipy.stats import pearsonr
 import scipy.stats as stats
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import spams
 
@@ -61,7 +64,15 @@ class staNMF:
 
     :param: seed (int, optional with default 123): sets numpy random seed
 
-    :param: replicates(int, optional with default 100): Number of bootstrapped
+    :param: replicates(int or list of ints of length 2, optional with default
+    int 100):
+    Specifies which/ how many bootstrapped repetitions to be performed on each
+    value of K, for use in stability analysis; if a list of length 2 is given,
+    self.replicates is set to a list of ints between the first and second
+    elements of this list. If it is set to an integer, self.replicates is set
+    to a list of ints between 0 and the given integer
+
+    Number of bootstrapped
     repetitions of NMF to be performed on each value of K, for use in stability
     analysis
 
@@ -69,11 +80,16 @@ class staNMF:
     has been completed for the dataset and k range for which you wish to
     calculate instability. To surpass NMF step if fileID file already contains
     factorization solutions for X in your range [K1, K2], set to True
+
+    :param: parallel (bool, optional with default False): True if NMF is to be
+    run in parallel such that the instability calculation should write a file
+    for each K containing its instability index
+
     '''
 
     def __init__(self, filename, folderID="", K1=15, K2=30,
                  sample_weights=False, seed=123, replicates=100,
-                 NMF_finished=False):
+                 NMF_finished=False, parallel=False):
         warnings.filterwarnings("ignore")
         self.K1 = K1
         self.K2 = K2
@@ -81,7 +97,12 @@ class staNMF:
         self.seed = seed
         self.guess = np.array([])
         self.guessdict = {}
-        self.replicates = replicates
+        self.parallel = parallel
+        if isinstance(replicates, int):
+            self.replicates = range(replicates)
+        elif isinstance(replicates, list):
+            self.replicates = range(replicates[0], replicates[1])
+
         self.X = []
         if filename == 'example':
             self.fn = os.path.join("data", "WuExampleExpression.csv")
@@ -226,7 +247,7 @@ class staNMF:
                 if p not in kwargs:
                     kwargs[p] = param[p]
 
-            for l in range(self.replicates):
+            for l in self.replicates:
                 self.initialguess(self.X, K, l)
                 Dsolution = spams.trainDL(
                     # Matrix
@@ -322,7 +343,7 @@ class staNMF:
         if k2 == 0:
             k2 = self.K2
 
-        numReplicates = self.replicates
+        numReplicates = len(self.replicates)
 
         if self.NMF_finished is False:
             ("staNMF Error: runNMF is not complete\n")
@@ -371,10 +392,15 @@ class staNMF:
                 self.instabilitydict[k] = (np.sum(distMat) / (numReplicates *
                                            (numReplicates-1)))
 
-                outputfile = open("instability.csv", "w")
-                for i in sorted(self.instabilitydict):
-                    outputfile.write(str(i) + "," +
-                                     str(self.instabilitydict[i]) + "\n")
+                if self.parallel:
+                    outputfile = open(str(path + "instability.csv"), "w")
+                    outputfile.write("\n" + str(k) + "," + str(
+                                        self.instabilitydict[k]))
+        if not self.parallel:
+            outputfile = open("instability.csv", "w")
+            for i in sorted(self.instabilitydict):
+                outputfile.write(str(i) + "," +
+                                 str(self.instabilitydict[i]) + "\n")
 
     def get_instability(self):
         '''
@@ -417,9 +443,18 @@ class staNMF:
         Usage: Called by user to generate plot
         '''
         kArray = []
-        for i in sorted(self.instabilitydict):
-            kArray.append(i)
-            self.instabilityarray.append(self.instabilitydict[i])
+
+        if self.parallel:
+            for K in range(x1, x2+1):
+                kpath = str("./staNMFDicts" + str(self.folderID) + "/K=" +
+                            str(K)+"/instability.csv")
+                df = pd.read_csv(kpath)
+                kArray.append(int(df.columns[0]))
+                self.instabilityarray.append(float(df.columns[1]))
+        else:
+            for i in sorted(self.instabilitydict):
+                kArray.append(i)
+                self.instabilityarray.append(self.instabilitydict[i])
         if xmax == 0:
             xmax = self.K2 + 1
         if xmin == -1:
@@ -436,3 +471,19 @@ class staNMF:
                       'Instability in ' + dataset_title))
         plotname = str(dataset_title + ".png")
         plt.savefig(plotname)
+
+    def ClearDirectory(self, k_list):
+        '''
+        A storage-saving option that clears the entire directory of each K
+        requested, including the instability.csv file in each folder
+
+        :param: k_list (list, required) list of K's to delete corresponding
+        directories of
+
+        NOTE: this should only be used after stability has been calculated for
+        each K you wish to delete.
+        '''
+        for K in k_list:
+            path = str("./staNMFDicts" + str(self.folderID) + "/K=" +
+                       str(K)+"/")
+            shutil.rmtree(path)

@@ -64,12 +64,12 @@ class staNMF:
 
     :param: seed (int, optional with default 123): sets numpy random seed
 
-    :param: replicates(int or list of ints of length 2, optional with default
+    :param: replicates(int or tuple of ints of length 2, optional with default
     int 100):
     Specifies which/ how many bootstrapped repetitions to be performed on each
     value of K, for use in stability analysis; if a list of length 2 is given,
     self.replicates is set to a list of ints between the first and second
-    elements of this list. If it is set to an integer, self.replicates is set
+    elements of this tuple. If it is set to an integer, self.replicates is set
     to a list of ints between 0 and the given integer
 
     Number of bootstrapped
@@ -100,9 +100,8 @@ class staNMF:
         self.parallel = parallel
         if isinstance(replicates, int):
             self.replicates = range(replicates)
-        elif isinstance(replicates, list):
+        elif isinstance(replicates, tuple) and len(replicates):
             self.replicates = range(replicates[0], replicates[1])
-
         self.X = []
         if filename == 'example':
             self.fn = os.path.join("data", "WuExampleExpression.csv")
@@ -396,11 +395,12 @@ class staNMF:
                     outputfile = open(str(path + "instability.csv"), "w")
                     outputfile.write("\n" + str(k) + "," + str(
                                         self.instabilitydict[k]))
+                    output.close()
         if not self.parallel:
             outputfile = open("instability.csv", "w")
+            outputwriter = csv.writer(outputfile)
             for i in sorted(self.instabilitydict):
-                outputfile.write(str(i) + "," +
-                                 str(self.instabilitydict[i]) + "\n")
+                outputwriter.writerow([str(i)], [str(self.instabilitydict[i])])
 
     def get_instability(self):
         '''
@@ -446,8 +446,8 @@ class staNMF:
 
         if self.parallel:
             for K in range(x1, x2+1):
-                kpath = str("./staNMFDicts" + str(self.folderID) + "/K=" +
-                            str(K)+"/instability.csv")
+                kpath = "./staNMFDicts{}/K={}/instability.csv".format(
+                                                      self.folderID, K)
                 df = pd.read_csv(kpath)
                 kArray.append(int(df.columns[0]))
                 self.instabilityarray.append(float(df.columns[1]))
@@ -484,6 +484,5 @@ class staNMF:
         each K you wish to delete.
         '''
         for K in k_list:
-            path = str("./staNMFDicts" + str(self.folderID) + "/K=" +
-                       str(K)+"/")
+            path = "./staNMFDicts{}/K={}/".format(self.folderID, K)
             shutil.rmtree(path)

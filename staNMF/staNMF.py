@@ -100,7 +100,8 @@ class staNMF:
         self.parallel = parallel
         if isinstance(replicates, int):
             self.replicates = range(replicates)
-        elif isinstance(replicates, tuple) and len(replicates):
+        elif isinstance(replicates, tuple):
+            start, stop = replicates
             self.replicates = range(replicates[0], replicates[1])
         self.X = []
         if filename == 'example':

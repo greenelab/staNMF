@@ -1,7 +1,6 @@
-import staNMF
-import sys
-import argparse
 '''
+Amy Campbell
+
 staNMF Driver Script
 
 Function:
@@ -34,6 +33,10 @@ generated(by runNMF) or are to be used by instabilty/plot
 more than one and must be 'runNMF', 'instability', or 'plot'
 
 '''
+import staNMF
+import sys
+import argparse
+
 parser = argparse.ArgumentParser()
 
 parser.add_argument("k1", type=int)
@@ -59,8 +62,8 @@ elif args.function == 'instability':
     staNMFobj.instability()
 
 elif args.function == 'plot':
-    staNMFobj = staNMF.staNMF(filename="PanCanMatrix.csv", K1=k1, K2=k2,
-                              replicates1=reps1, replicates2=reps2,
-                              folderID=folder, NMF_finished=True,
+    staNMFobj = staNMF.staNMF(filename=args.filename, K1=args.k1, K2=args.k2,
+                              replicates1=args.reps1, replicates2=args.reps2,
+                              folderID=args.folder, NMF_finished=True,
                               parallel=True)
     staNMFobj.plot(done=True)

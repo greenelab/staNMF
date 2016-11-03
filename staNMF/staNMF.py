@@ -394,9 +394,10 @@ class staNMF:
 
                 if self.parallel:
                     outputfile = open(str(path + "instability.csv"), "w")
-                    outputfile.write("\n{},{}".format(
-                            k, self.instabilitydict[k]))
-                    output.close()
+                    outputwriter = csv.writer(outputfile)
+                    outputwriter.writerow(k, self.instabilitydict[k])
+                    outputfile.close()
+
         if not self.parallel:
             outputfile = open("instability.csv", "w")
             outputwriter = csv.writer(outputfile)

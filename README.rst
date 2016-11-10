@@ -24,6 +24,14 @@ drosophila spatial expression data between K=15 and K=30; Generates
 sample factorizations, calculates instability index, and plots instability
 against K
 
+================
+staNMF_driver.py
+================
+Driver script to run staNMF in parallel; can be called from the command line
+using:
+python staNMF_driver.py <k1> <k2> <reps1> <reps2> <folder> <filename> <function>
+(See docstring for more specific instructions) 
+
 ============================
 data/WuExampleExpression.csv
 ============================

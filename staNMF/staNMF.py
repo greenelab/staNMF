@@ -447,7 +447,7 @@ class staNMF:
         kArray = []
 
         if self.parallel:
-            for K in range(x1, x2+1):
+            for K in range(self.K1, self.K2):
                 kpath = "./staNMFDicts{}/K={}/instability.csv".format(
                                                       self.folderID, K)
                 df = pd.read_csv(kpath)
